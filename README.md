@@ -1,6 +1,6 @@
 # terraform-registry
 This is light weight Terraform Registry, more like a proxy.
-It currently only supports the `v1.provider` endpoint an Terraform provider releases hosted on Github. 
+It currently only supports the `v1.provider` endpoint and Terraform provider releases hosted on Github. 
 
 # how it works
 The registry dynamically generates the correct response based on assets found in
