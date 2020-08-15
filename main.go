@@ -156,7 +156,6 @@ func providerHandler(registryHost string) echo.HandlerFunc {
 
 func performAction(c echo.Context, param, provider string, repos []*github.RepositoryRelease) error {
 	match := actionRegexp.FindStringSubmatch(param)
-	fmt.Printf("matching: %s %d\n", param, len(match))
 	if len(match) < 2 {
 		fmt.Printf("repos: %v\n", repos)
 		return c.JSON(http.StatusBadRequest, &ErrorResponse{
@@ -192,7 +191,7 @@ func performAction(c echo.Context, param, provider string, repos []*github.Repos
 		}
 	}
 	if repo == nil {
-		c.JSON(http.StatusBadRequest, &ErrorResponse{
+		return c.JSON(http.StatusBadRequest, &ErrorResponse{
 			Status:  http.StatusBadRequest,
 			Message: fmt.Sprintf("cannot find version: %s", version),
 		})
@@ -314,7 +313,6 @@ func collectPlatforms(assets []*github.ReleaseAsset) []Platform {
 				result[name] = match[i]
 			}
 		}
-		fmt.Printf("result: %v, match: %v\n", result, match)
 		platforms = append(platforms, Platform{
 			Os:   result["os"],
 			Arch: result["arch"],
