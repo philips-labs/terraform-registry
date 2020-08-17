@@ -1,5 +1,5 @@
 # terraform-registry
-This is light weight Terraform Registry, more like a proxy.
+This is a light weight Terraform Registry, more like a proxy.
 It currently only supports the `v1.provider` endpoint and Terraform provider releases hosted on Github. 
 
 # how it works
