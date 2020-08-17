@@ -4,7 +4,7 @@ It currently only supports the `v1.provider` endpoint and Terraform provider rel
 
 # how it works
 The registry dynamically generates the correct response based on assets found in
-Github provider releases which conform to the Terraform asset releases
+Github provider releases which conform to the Terraform asset conventions.
 There is one additional file required which should be called `signkey.asc`
 This file must contain the [ASCII Armored PGP public key](https://www.terraform.io/docs/registry/providers/publishing.html) which was
 used to sign the `..._SHA256SUMS.sig` signature file.
