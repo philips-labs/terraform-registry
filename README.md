@@ -1,6 +1,6 @@
 # terraform-registry
 This is a light weight Terraform Registry, more like a proxy.
-It currently only supports the `v1.provider` endpoint and Terraform provider releases hosted on Github. 
+It currently only supports the `v1.provider` endpoint and Terraform provider releases hosted on Github.
 
 # how it works
 The registry dynamically generates the correct response based on assets found in
@@ -46,10 +46,18 @@ https://github.com/philips-forks/terraform-provider-cloudfoundry/releases/tag/v0
 
 Notice the `signkey.asc` which is included in this release. You can use [Goreleaser](https://goreleaser.com/quick-start/) with this [.goreleaser.yml](https://github.com/hashicorp/terraform-provider-scaffolding/blob/master/.goreleaser.yml) template to create arbitrary releases of providers. The provider pointer also does not include the `terraform-provider-` prefix.
 
+# private repositories
+
+## authenticating via Personal Access Token
+
+1. Create token with `repo` scope [here](https://github.com/settings/tokens/new)
+
+  If you are using GitHub SSO for your organization, press `Enable SSO` button on your token and authorize it for this organization.
+
+2. Set token in `GITHUB_TOKEN` environment variable
+
 # current limitations and TODOs
-- Uses an anonymous Github client which has very low quota
 - Only supports providers
-- TODO: support Github PAT tokens
 
 # contact / getting help
 andy.lo-a-foe@philips.com
