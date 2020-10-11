@@ -8,6 +8,7 @@ Github provider releases which conform to the Terraform asset conventions.
 There is one additional file required which should be called `signkey.asc`
 This file must contain the [ASCII Armored PGP public key](https://www.terraform.io/docs/registry/providers/publishing.html) which was
 used to sign the `..._SHA256SUMS.sig` signature file.
+If you don't have a PGP key yet, [you can generate one easily](https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/generating-a-new-gpg-key).
 
 # use cases
 - host your own private Terraform provider registry
