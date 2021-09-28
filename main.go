@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 
@@ -36,6 +37,8 @@ import (
 	"golang.org/x/crypto/openpgp/armor"
 
 	"golang.org/x/crypto/openpgp"
+
+	"golang.org/x/oauth2"
 
 	"github.com/google/go-github/v32/github"
 	"github.com/labstack/echo/v4"
@@ -52,8 +55,10 @@ func main() {
 	e := echo.New()
 	e.Use(middleware.Logger())
 
+	client := newClient()
+
 	e.GET("/.well-known/terraform.json", serviceDiscoveryHandler())
-	e.GET("/v1/providers/:namespace/:type/*", providerHandler())
+	e.GET("/v1/providers/:namespace/:type/*", client.providerHandler())
 
 	_ = e.Start(":8080")
 }
@@ -67,6 +72,12 @@ func serviceDiscoveryHandler() echo.HandlerFunc {
 		}
 		return c.JSON(http.StatusOK, response)
 	}
+}
+
+type Client struct {
+	github        *github.Client
+	authenticated bool
+	http          *http.Client
 }
 
 type Platform struct {
@@ -116,12 +127,55 @@ type Version struct {
 	ReleaseAsset *github.ReleaseAsset `json:"-"`
 }
 
+func newClient() *Client {
+	client := &Client{}
+
+	if token, ok := os.LookupEnv("GITHUB_TOKEN"); ok {
+		ctx := context.Background()
+		ts := oauth2.StaticTokenSource(
+			&oauth2.Token{AccessToken: token},
+		)
+		httpClient := oauth2.NewClient(ctx, ts)
+
+		client.github = github.NewClient(httpClient)
+		client.http = httpClient
+		client.authenticated = true
+
+	} else {
+		client.github = github.NewClient(nil)
+	}
+
+	return client
+}
+
+func (client *Client) getURL(c echo.Context, asset *github.ReleaseAsset) (string, error) {
+	if client.authenticated {
+		namespace := c.Get("namespace").(string)
+		provider := c.Get("provider").(string)
+
+		_, url, err := client.github.Repositories.DownloadReleaseAsset(context.Background(),
+			namespace, provider, *asset.ID, nil)
+		if err != nil {
+			return "", err
+		}
+
+		return url, nil
+	}
+
+	return *asset.BrowserDownloadURL, nil
+}
+
 func getShasum(asset string, shasumURL string) (string, error) {
 	resp, err := http.Get(shasumURL)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return "", fmt.Errorf("not found")
+	}
+
 	scanner := bufio.NewScanner(resp.Body)
 	for scanner.Scan() {
 		parts := strings.Split(scanner.Text(), "  ")
@@ -135,16 +189,14 @@ func getShasum(asset string, shasumURL string) (string, error) {
 	return "", fmt.Errorf("not found")
 }
 
-func providerHandler() echo.HandlerFunc {
-	client := github.NewClient(nil)
-
+func (client *Client) providerHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		namespace := c.Param("namespace")
 		typeParam := c.Param("type")
 		param := c.Param("*")
 		provider := "terraform-provider-" + typeParam
 
-		repos, _, err := client.Repositories.ListReleases(context.Background(),
+		repos, _, err := client.github.Repositories.ListReleases(context.Background(),
 			namespace, provider, nil)
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, &ErrorResponse{
@@ -167,12 +219,14 @@ func providerHandler() echo.HandlerFunc {
 			}
 			return c.JSON(http.StatusOK, response)
 		default:
-			return performAction(c, param, provider, repos)
+			c.Set("namespace", namespace)
+			c.Set("provider", provider)
+			return client.performAction(c, param, repos)
 		}
 	}
 }
 
-func performAction(c echo.Context, param, provider string, repos []*github.RepositoryRelease) error {
+func (client *Client) performAction(c echo.Context, param string, repos []*github.RepositoryRelease) error {
 	match := actionRegexp.FindStringSubmatch(param)
 	if len(match) < 2 {
 		fmt.Printf("repos: %v\n", repos)
@@ -187,16 +241,18 @@ func performAction(c echo.Context, param, provider string, repos []*github.Repos
 			result[name] = match[i]
 		}
 	}
+	provider := c.Get("provider").(string)
 	version := result["version"]
 	os := result["os"]
 	arch := result["arch"]
 	filename := fmt.Sprintf("%s_%s_%s_%s.zip", provider, version, os, arch)
 	shasumFilename := fmt.Sprintf("%s_%s_SHA256SUMS", provider, version)
 	shasumSigFilename := fmt.Sprintf("%s_%s_SHA256SUMS.sig", provider, version)
+	signKeyFilename := "signkey.asc"
+
 	downloadURL := ""
 	shasumURL := ""
 	shasumSigURL := ""
-	signKey := "signkey.asc"
 	signKeyURL := ""
 
 	var repo *github.RepositoryRelease
@@ -216,23 +272,36 @@ func performAction(c echo.Context, param, provider string, repos []*github.Repos
 	}
 	for _, a := range repo.Assets {
 		if *a.Name == filename {
-			downloadURL = *a.BrowserDownloadURL
+			downloadURL, _ = client.getURL(c, a)
 			continue
 		}
 		if *a.Name == shasumFilename {
-			shasumURL = *a.BrowserDownloadURL
+			shasumURL, _ = client.getURL(c, a)
 			continue
 		}
 		if *a.Name == shasumSigFilename {
-			shasumSigURL = *a.BrowserDownloadURL
+			shasumSigURL, _ = client.getURL(c, a)
 			continue
 		}
-		if *a.Name == signKey {
-			signKeyURL = *a.BrowserDownloadURL
+		if *a.Name == signKeyFilename {
+			signKeyURL, _ = client.getURL(c, a)
 		}
 	}
-	shasum, _ := getShasum(filename, shasumURL)
-	pgpPublicKey, pgpPublicKeyID, _ := getPublicKey(signKeyURL)
+
+	shasum, err := getShasum(filename, shasumURL)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, &ErrorResponse{
+			Status:  http.StatusBadRequest,
+			Message: fmt.Sprintf("failed getting shasum %v", err),
+		})
+	}
+	pgpPublicKey, pgpPublicKeyID, err := getPublicKey(signKeyURL)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, &ErrorResponse{
+			Status:  http.StatusBadRequest,
+			Message: fmt.Sprintf("failed getting pgp keys %v", err),
+		})
+	}
 
 	switch result["action"] {
 	case "download":
@@ -267,6 +336,11 @@ func getPublicKey(url string) (string, string, error) {
 		return "", "", err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return "", "", fmt.Errorf("not found")
+	}
+
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return "", "", err
@@ -274,6 +348,9 @@ func getPublicKey(url string) (string, string, error) {
 	// PGP
 	armored := bytes.NewReader(data)
 	block, err := armor.Decode(armored)
+	if err != nil {
+		return "", "", err
+	}
 	if block == nil || block.Type != openpgp.PublicKeyType {
 		return "", "", fmt.Errorf("not a public key")
 	}
