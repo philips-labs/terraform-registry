@@ -60,7 +60,13 @@ func main() {
 	e.GET("/.well-known/terraform.json", serviceDiscoveryHandler())
 	e.GET("/v1/providers/:namespace/:type/*", client.providerHandler())
 
-	_ = e.Start(":8080")
+	port := os.Getenv("PORT")
+
+	if port == "" {
+		port = "8080"
+	}
+
+	_ = e.Start(fmt.Sprintf(":%s", port))
 }
 
 func serviceDiscoveryHandler() echo.HandlerFunc {
