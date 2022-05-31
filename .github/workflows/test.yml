@@ -1,0 +1,23 @@
+name: "Test"
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: [ '1.16', '1.17' ]
+    name: Go ${{ matrix.go }} test
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup go
+        uses: actions/setup-go@v2.1.4
+        with:
+          go-version: ${{ matrix.go }}
+      - run: go test ./...
