@@ -2,7 +2,7 @@
 This is a light weight Terraform Registry, more like a proxy.
 It currently only supports the `v1.provider` endpoint and Terraform provider releases hosted on Github.
 
-# how it works
+## how it works
 The registry dynamically generates the correct response based on assets found in
 Github provider releases which conform to the Terraform asset conventions.
 There is one additional file required which should be called `signkey.asc`
@@ -10,20 +10,20 @@ This file must contain the [ASCII Armored PGP public key](https://www.terraform.
 used to sign the `..._SHA256SUMS.sig` signature file.
 If you don't have a PGP key yet, [you can generate one easily](https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/generating-a-new-gpg-key).
 
-# use cases
+## use cases
 - host your own private Terraform provider registry
 - easily release custom builds of providers e.g. releases from your own forks
 
-# deployment
+## deployment
 Build a docker image and deploy it to your favorite hosting location
 
-# endpoints
+## endpoints
 | Endpoint | Description |
 |-----------|-------------|
 | `/.well-known/terraform.json` | The service discovery endpoint used by terraform |
 | `/v1/providers/:namespace/:type/*` | The `versions` and `download` action endpoints |
 
-# example usage
+## example usage
 
 ```terraform
 terraform {
@@ -47,9 +47,18 @@ https://github.com/philips-forks/terraform-provider-cloudfoundry/releases/tag/v0
 
 Notice the `signkey.asc` which is included in this release. You can use [Goreleaser](https://goreleaser.com/quick-start/) with this [.goreleaser.yml](https://github.com/hashicorp/terraform-provider-scaffolding/blob/master/.goreleaser.yml) template to create arbitrary releases of providers. The provider pointer also does not include the `terraform-provider-` prefix.
 
-# private repositories
+## GitHub Enterprise Server
 
-## authenticating via Personal Access Token
+If you want to use the registry against a GitHub Enterprise server, just specify additional environment variables.
+
+* `GITHUB_ENTERPRISE_URL` would be a value like `https://github.example.com`.
+* `GITHUB_ENTERPRISE_UPLOADS_URL` depends on your installation, it defaults to the base URL.
+
+See [go-github documentation](https://pkg.go.dev/github.com/google/go-github/v32@v32.1.0/github#NewEnterpriseClient) for details on both URLs.
+
+## private repositories
+
+### authenticating via Personal Access Token
 
 1. Create token with `repo` scope [here](https://github.com/settings/tokens/new)
 
@@ -57,11 +66,11 @@ Notice the `signkey.asc` which is included in this release. You can use [Gorelea
 
 2. Set token in `GITHUB_TOKEN` environment variable
 
-# current limitations and TODOs
+## current limitations and TODOs
 - Only supports providers
 
-# contact / getting help
+## contact / getting help
 andy.lo-a-foe@philips.com
 
-# license
+## license
 License is MIT

@@ -32,9 +32,9 @@ import (
 	"regexp"
 	"strings"
 
-        "github.com/ProtonMail/go-crypto/openpgp"
-        "github.com/ProtonMail/go-crypto/openpgp/packet"
-        "github.com/ProtonMail/go-crypto/openpgp/armor"
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/armor"
+	"github.com/ProtonMail/go-crypto/openpgp/packet"
 
 	"golang.org/x/oauth2"
 
@@ -53,7 +53,11 @@ func main() {
 	e := echo.New()
 	e.Use(middleware.Logger())
 
-	client := newClient()
+	client, err := newClient()
+	if err != nil {
+		e.Logger.Error(err)
+		os.Exit(1)
+	}
 
 	e.GET("/.well-known/terraform.json", serviceDiscoveryHandler())
 	e.GET("/v1/providers/:namespace/:type/*", client.providerHandler())
@@ -64,7 +68,11 @@ func main() {
 		port = "8080"
 	}
 
-	_ = e.Start(fmt.Sprintf(":%s", port))
+	err = e.Start(fmt.Sprintf(":%s", port))
+	if err != nil {
+		e.Logger.Error(err)
+		os.Exit(1)
+	}
 }
 
 func serviceDiscoveryHandler() echo.HandlerFunc {
@@ -131,7 +139,7 @@ type Version struct {
 	ReleaseAsset *github.ReleaseAsset `json:"-"`
 }
 
-func newClient() *Client {
+func newClient() (*Client, error) {
 	client := &Client{}
 
 	if token, ok := os.LookupEnv("GITHUB_TOKEN"); ok {
@@ -139,17 +147,29 @@ func newClient() *Client {
 		ts := oauth2.StaticTokenSource(
 			&oauth2.Token{AccessToken: token},
 		)
-		httpClient := oauth2.NewClient(ctx, ts)
 
-		client.github = github.NewClient(httpClient)
-		client.http = httpClient
+		client.http = oauth2.NewClient(ctx, ts)
 		client.authenticated = true
-
-	} else {
-		client.github = github.NewClient(nil)
 	}
 
-	return client
+	if serverURL := os.Getenv("GITHUB_ENTERPRISE_URL"); serverURL != "" {
+		uploadURL := serverURL
+
+		if url := os.Getenv("GITHUB_ENTERPRISE_UPLOADS_URL"); url != "" {
+			uploadURL = url
+		}
+
+		ghClient, err := github.NewEnterpriseClient(serverURL, uploadURL, client.http)
+		if err != nil {
+			return nil, fmt.Errorf("could not create enterprise client: %w", err)
+		}
+
+		client.github = ghClient
+	} else {
+		client.github = github.NewClient(client.http)
+	}
+
+	return client, nil
 }
 
 func (client *Client) getURL(c echo.Context, asset *github.ReleaseAsset) (string, error) {
