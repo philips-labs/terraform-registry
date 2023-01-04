@@ -1,16 +1,11 @@
 FROM golang:1.19.4 as builder
 WORKDIR /build
-COPY go.mod .
-COPY go.sum .
+COPY . /build/
+
 RUN go mod download
+RUN CGO_ENABLED=0 go build -o app
 
-# Build
-COPY . .
-RUN git rev-parse --short HEAD
-RUN GIT_COMMIT=$(git rev-parse --short HEAD) && \
-    CGO_ENABLED=0 go build -o app -ldflags "-X main.GitCommit=${GIT_COMMIT}"
-
-FROM alpine:latest 
+FROM alpine:latest
 RUN apk update && apk add ca-certificates && rm -rf /var/cache/apk/*
 WORKDIR /app
 COPY --from=builder /build/app /app
