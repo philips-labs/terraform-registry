@@ -6,7 +6,7 @@ require (
 	github.com/ProtonMail/go-crypto v1.1.5
 	github.com/google/go-github/v32 v32.1.0
 	github.com/labstack/echo/v4 v4.13.3
-	golang.org/x/oauth2 v0.26.0
+	golang.org/x/oauth2 v0.27.0
 )
 
 require (
