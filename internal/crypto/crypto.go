@@ -19,41 +19,50 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-package main
+package crypto
 
 import (
+	"bytes"
 	"fmt"
-	"os"
+	"io"
+	"net/http"
 
-	"terraform-registry/internal/client"
-	"terraform-registry/internal/handler"
-
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/armor"
+	"github.com/ProtonMail/go-crypto/openpgp/packet"
 )
 
-func main() {
-	e := echo.New()
-	e.Use(middleware.Logger())
-
-	client, err := client.NewClient()
+// GetPublicKey retrieves and parses a PGP public key from a URL
+func GetPublicKey(url string) (string, string, error) {
+	resp, err := http.Get(url)
 	if err != nil {
-		e.Logger.Error(err)
-		os.Exit(1)
+		return "", "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return "", "", fmt.Errorf("not found")
 	}
 
-	e.GET("/.well-known/terraform.json", handler.ServiceDiscoveryHandler())
-	e.GET("/v1/providers/:namespace/:type/*", handler.ProviderHandler(client))
-
-	port := os.Getenv("PORT")
-
-	if port == "" {
-		port = "8080"
-	}
-
-	err = e.Start(fmt.Sprintf(":%s", port))
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		e.Logger.Error(err)
-		os.Exit(1)
+		return "", "", err
 	}
+	// PGP
+	armored := bytes.NewReader(data)
+	block, err := armor.Decode(armored)
+	if err != nil {
+		return "", "", err
+	}
+	if block == nil || block.Type != openpgp.PublicKeyType {
+		return "", "", fmt.Errorf("not a public key")
+	}
+	reader := packet.NewReader(block.Body)
+	pkt, err := reader.Next()
+	if err != nil {
+		return "", "", err
+	}
+	key, _ := pkt.(*packet.PublicKey)
+
+	return string(data), key.KeyIdString(), nil
 }

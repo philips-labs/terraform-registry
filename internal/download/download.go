@@ -19,41 +19,36 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-package main
+package download
 
 import (
+	"bufio"
 	"fmt"
-	"os"
-
-	"terraform-registry/internal/client"
-	"terraform-registry/internal/handler"
-
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"net/http"
+	"strings"
 )
 
-func main() {
-	e := echo.New()
-	e.Use(middleware.Logger())
-
-	client, err := client.NewClient()
+// GetShasum retrieves the SHA256 sum for a specific asset from a SHASUM file URL
+func GetShasum(asset string, shasumURL string) (string, error) {
+	resp, err := http.Get(shasumURL)
 	if err != nil {
-		e.Logger.Error(err)
-		os.Exit(1)
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return "", fmt.Errorf("not found")
 	}
 
-	e.GET("/.well-known/terraform.json", handler.ServiceDiscoveryHandler())
-	e.GET("/v1/providers/:namespace/:type/*", handler.ProviderHandler(client))
-
-	port := os.Getenv("PORT")
-
-	if port == "" {
-		port = "8080"
+	scanner := bufio.NewScanner(resp.Body)
+	for scanner.Scan() {
+		parts := strings.Split(scanner.Text(), "  ")
+		if len(parts) != 2 {
+			continue
+		}
+		if parts[1] == asset {
+			return parts[0], nil
+		}
 	}
-
-	err = e.Start(fmt.Sprintf(":%s", port))
-	if err != nil {
-		e.Logger.Error(err)
-		os.Exit(1)
-	}
+	return "", fmt.Errorf("not found")
 }
