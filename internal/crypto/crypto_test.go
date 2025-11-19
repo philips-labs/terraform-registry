@@ -56,7 +56,7 @@ func TestGetPublicKey(t *testing.T) {
 			name: "Valid PGP key",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(testPublicKey))
+				_, _ = w.Write([]byte(testPublicKey))
 			},
 			wantErr:    false,
 			checkKeyID: true,
@@ -72,7 +72,7 @@ func TestGetPublicKey(t *testing.T) {
 			name: "Invalid PGP data",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("not a valid pgp key"))
+				_, _ = w.Write([]byte("not a valid pgp key"))
 			},
 			wantErr: true,
 		},
@@ -80,7 +80,7 @@ func TestGetPublicKey(t *testing.T) {
 			name: "Empty response",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(""))
+				_, _ = w.Write([]byte(""))
 			},
 			wantErr: true,
 		},
@@ -123,7 +123,7 @@ func TestGetPublicKeyNonPGPContent(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		// Return valid armored data but not a public key
-		w.Write([]byte(`-----BEGIN PGP MESSAGE-----
+		_, _ = w.Write([]byte(`-----BEGIN PGP MESSAGE-----
 Some message content here
 -----END PGP MESSAGE-----`))
 	}))

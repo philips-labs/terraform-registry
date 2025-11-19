@@ -39,9 +39,9 @@ func TestNewClient(t *testing.T) {
 
 	// Restore after test
 	defer func() {
-		os.Setenv("GITHUB_TOKEN", origToken)
-		os.Setenv("GITHUB_ENTERPRISE_URL", origServerURL)
-		os.Setenv("GITHUB_ENTERPRISE_UPLOADS_URL", origUploadURL)
+		_ = os.Setenv("GITHUB_TOKEN", origToken)
+		_ = os.Setenv("GITHUB_ENTERPRISE_URL", origServerURL)
+		_ = os.Setenv("GITHUB_ENTERPRISE_UPLOADS_URL", origUploadURL)
 	}()
 
 	tests := []struct {
@@ -53,9 +53,9 @@ func TestNewClient(t *testing.T) {
 		{
 			name: "Without authentication",
 			setupEnv: func() {
-				os.Unsetenv("GITHUB_TOKEN")
-				os.Unsetenv("GITHUB_ENTERPRISE_URL")
-				os.Unsetenv("GITHUB_ENTERPRISE_UPLOADS_URL")
+				_ = os.Unsetenv("GITHUB_TOKEN")
+				_ = os.Unsetenv("GITHUB_ENTERPRISE_URL")
+				_ = os.Unsetenv("GITHUB_ENTERPRISE_UPLOADS_URL")
 			},
 			wantAuthenticated: false,
 			wantErr:           false,
@@ -63,9 +63,9 @@ func TestNewClient(t *testing.T) {
 		{
 			name: "With authentication token",
 			setupEnv: func() {
-				os.Setenv("GITHUB_TOKEN", "test-token")
-				os.Unsetenv("GITHUB_ENTERPRISE_URL")
-				os.Unsetenv("GITHUB_ENTERPRISE_UPLOADS_URL")
+				_ = os.Setenv("GITHUB_TOKEN", "test-token")
+				_ = os.Unsetenv("GITHUB_ENTERPRISE_URL")
+				_ = os.Unsetenv("GITHUB_ENTERPRISE_UPLOADS_URL")
 			},
 			wantAuthenticated: true,
 			wantErr:           false,
@@ -73,9 +73,9 @@ func TestNewClient(t *testing.T) {
 		{
 			name: "With enterprise URL",
 			setupEnv: func() {
-				os.Unsetenv("GITHUB_TOKEN")
-				os.Setenv("GITHUB_ENTERPRISE_URL", "https://github.example.com/api/v3/")
-				os.Unsetenv("GITHUB_ENTERPRISE_UPLOADS_URL")
+				_ = os.Unsetenv("GITHUB_TOKEN")
+				_ = os.Setenv("GITHUB_ENTERPRISE_URL", "https://github.example.com/api/v3/")
+				_ = os.Unsetenv("GITHUB_ENTERPRISE_UPLOADS_URL")
 			},
 			wantAuthenticated: false,
 			wantErr:           false,
@@ -83,9 +83,9 @@ func TestNewClient(t *testing.T) {
 		{
 			name: "With enterprise URL and token",
 			setupEnv: func() {
-				os.Setenv("GITHUB_TOKEN", "test-token")
-				os.Setenv("GITHUB_ENTERPRISE_URL", "https://github.example.com/api/v3/")
-				os.Unsetenv("GITHUB_ENTERPRISE_UPLOADS_URL")
+				_ = os.Setenv("GITHUB_TOKEN", "test-token")
+				_ = os.Setenv("GITHUB_ENTERPRISE_URL", "https://github.example.com/api/v3/")
+				_ = os.Unsetenv("GITHUB_ENTERPRISE_UPLOADS_URL")
 			},
 			wantAuthenticated: true,
 			wantErr:           false,

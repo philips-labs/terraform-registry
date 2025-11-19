@@ -40,7 +40,7 @@ func TestGetShasum(t *testing.T) {
 			asset: "terraform-provider-aws_1.0.0_linux_amd64.zip",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(`abc123def456  terraform-provider-aws_1.0.0_linux_amd64.zip
+				_, _ = w.Write([]byte(`abc123def456  terraform-provider-aws_1.0.0_linux_amd64.zip
 789012ghi345  terraform-provider-aws_1.0.0_darwin_amd64.zip
 `))
 			},
@@ -52,7 +52,7 @@ func TestGetShasum(t *testing.T) {
 			asset: "terraform-provider-aws_1.0.0_windows_amd64.zip",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(`abc123def456  terraform-provider-aws_1.0.0_linux_amd64.zip
+				_, _ = w.Write([]byte(`abc123def456  terraform-provider-aws_1.0.0_linux_amd64.zip
 789012ghi345  terraform-provider-aws_1.0.0_darwin_amd64.zip
 `))
 			},
@@ -71,7 +71,7 @@ func TestGetShasum(t *testing.T) {
 			asset: "terraform-provider-aws_1.0.0_linux_amd64.zip",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(``))
+				_, _ = w.Write([]byte(``))
 			},
 			wantErr: true,
 		},
@@ -80,7 +80,7 @@ func TestGetShasum(t *testing.T) {
 			asset: "terraform-provider-aws_1.0.0_linux_amd64.zip",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(`abc123def456  terraform-provider-aws_1.0.0_linux_amd64.zip
+				_, _ = w.Write([]byte(`abc123def456  terraform-provider-aws_1.0.0_linux_amd64.zip
 `))
 			},
 			wantShasum: "abc123def456",
@@ -91,7 +91,7 @@ func TestGetShasum(t *testing.T) {
 			asset: "terraform-provider-aws_1.0.0_linux_amd64.zip",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(`abc123def456 terraform-provider-aws_1.0.0_linux_amd64.zip
+				_, _ = w.Write([]byte(`abc123def456 terraform-provider-aws_1.0.0_linux_amd64.zip
 `))
 			},
 			wantErr: true,
@@ -101,7 +101,7 @@ func TestGetShasum(t *testing.T) {
 			asset: "terraform-provider-aws_4.67.0_linux_amd64.zip",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(`1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef  terraform-provider-aws_4.67.0_darwin_amd64.zip
+				_, _ = w.Write([]byte(`1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef  terraform-provider-aws_4.67.0_darwin_amd64.zip
 fedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321  terraform-provider-aws_4.67.0_darwin_arm64.zip
 abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890  terraform-provider-aws_4.67.0_linux_amd64.zip
 567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef123456  terraform-provider-aws_4.67.0_windows_amd64.zip
