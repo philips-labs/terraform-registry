@@ -1,12 +1,12 @@
 module terraform-registry
 
-go 1.24.0
+go 1.26.0
 
 require (
 	github.com/ProtonMail/go-crypto v1.3.0
 	github.com/google/go-github/v32 v32.1.0
 	github.com/labstack/echo/v4 v4.13.4
-	golang.org/x/oauth2 v0.35.0
+	golang.org/x/oauth2 v0.38.0
 )
 
 require (
